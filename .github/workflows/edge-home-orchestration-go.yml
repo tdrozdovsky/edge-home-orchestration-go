@@ -22,7 +22,6 @@ jobs:
         if:  matrix.arch == 'x86_64' && matrix.os == 'ubuntu-20.04'
         run: |
           go get github.com/axw/gocov/gocov
-          go get golang.org/x/lint/golint
           echo "$HOME/go/bin" >> $GITHUB_PATH
           sudo mkdir -p /var/edge-orchestration/mnedc
           echo -e '192.168.0.125\n3334' | sudo tee /var/edge-orchestration/mnedc/client.config
@@ -39,14 +38,32 @@ jobs:
       - name: Build the container
         run: ./build.sh container ${{ matrix.arch }}
 
-      - name: Analysis using the lint & vet tools
-        if:  matrix.arch == 'x86_64' && matrix.os == 'ubuntu-20.04'
-        run: |
-          golint ./src/...
-          go vet -v ./src/...
-
       - name: Run the Test Suite
         if:  matrix.arch == 'x86_64' && matrix.os == 'ubuntu-20.04'
         run: |
           docker stop edge-orchestration || true
           gocov test $(go list ./src/... | grep -v mnedc/client | grep -v mock) -coverprofile=/dev/null
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Golang
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.15.6'
+
+      - name: Set env vars (gocov,golint)
+        run: |
+          go get golang.org/x/lint/golint
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Go Mod Vendor
+        run: |
+          make go-vendor
+          git apply --directory=vendor/github.com/grandcat/zeroconf ./src/controller/discoverymgr/wrapper/zeroconfEdgeOrchestration.patch
+
+      - name: Analysis using the lint & vet tools
+        run: |
+          golint ./src/...
+          go vet -v ./src/...

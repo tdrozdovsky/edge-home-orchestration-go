@@ -3,10 +3,6 @@
 
 package fuzz
 
-import (
-	"github.com/lf-edge/edge-home-orchestration-go/internal/common/commandvalidator/injectionchecker"
-)
-
 func Fuzz(data []byte) int {
 	str := "12345"
 	if HasInjectionOperator(str) != false {

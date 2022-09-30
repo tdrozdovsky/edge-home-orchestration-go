@@ -15,6 +15,13 @@ COPY . .
 # install required tools
 RUN apt update
 RUN apt install -y wget build-essential ca-certificates git
+# RUN cp local-ca.crt /usr/local/share/ca-certificates
+RUN update-ca-certificates
+# RUN ls -la /usr/local/share/ca-certificates
+RUN ls -la /etc/ssl/certs
+RUN printf "\nca_directory=/etc/ssl/certs/" | tee -a /etc/wgetrc
+RUN cat /etc/wgetrc
+RUN wget https://golang.org/dl/go1.19.1.linux-armv6l.tar.gz --ca-directory=/etc/ssl/certs/
 RUN script/install-golang.sh
 ARG TARGETVERSION
 RUN make buildx_binary VERSION=$TARGETVERSION

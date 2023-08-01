@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
-	github.com/eclipse/paho.mqtt.golang v1.4.2
+	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/edgexfoundry/device-sdk-go v1.4.0
 	github.com/edgexfoundry/go-mod-core-contracts v0.1.115
 	github.com/fsnotify/fsnotify v1.6.0
@@ -62,7 +62,7 @@ require (
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/consul/api v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
@@ -89,9 +89,9 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 	google.golang.org/grpc v1.47.0 // indirect

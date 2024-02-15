@@ -8,48 +8,102 @@ permissions:
   contents: read
 
 jobs:
-  publish:
-    runs-on: ubuntu-20.04
+  # publish:
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - name: Check out the repo
+  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+
+  #     - name: Setup Golang
+  #       uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+  #       with:
+  #         go-version: '1.19'
+
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3
+
+  #     - name: Extract metadata (tags, labels) for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81
+  #       with:
+  #         images: lfedge/edge-home-orchestration-go
+  #         tags: |
+  #           type=semver,pattern={{version}}
+
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
+
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  #     - name: Copy Dockerfile
+  #       run: |
+  #         make distclean
+  #         cp configs/defdockerfiles/ubuntu_multistage Dockerfile
+
+  #     - name: Build and push
+  #       uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56
+  #       with:
+  #         context: .
+  #         build-args: TARGETVERSION=v${{ steps.meta.outputs.version }}
+  #         platforms: linux/amd64,linux/arm64,linux/arm/v7
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
+
+  # Create Release
+  create-release:
+    permissions:
+      contents: write  # for marvinpinto/action-automatic-releases to generate pre-release
+    name: Create Release
+    runs-on: "ubuntu-latest"
+
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-
-      - name: Setup Golang
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491
+      - name: Harden Runner
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
         with:
-          go-version: '1.19'
+          egress-policy: audit
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81
+      - uses: marvinpinto/action-automatic-releases@d68defdd11f9dcc7f52f35c1b7c236ee7513bcc1
         with:
-          images: lfedge/edge-home-orchestration-go
-          tags: |
-            type=semver,pattern={{version}}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          title: "Edge-Orchestration ${{ github.ref_name }}"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Copy Dockerfile
+  # Generate Hashes
+  generate_hashes:
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    name: Generate Hashes
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - name: Download Source Code Assets
         run: |
-          make distclean
-          cp configs/defdockerfiles/ubuntu_multistage Dockerfile
+          VERSION=${{ github.ref_name }}
+          wget https://github.com/${{ github.repository }}/archive/refs/tags/${VERSION}.tar.gz
+          wget https://github.com/${{ github.repository }}/archive/refs/tags/${VERSION}.zip
+          mv ${VERSION}.tar.gz edge-home-orchestration-go-${VERSION:1}.tar.gz
+          mv ${VERSION}.zip edge-home-orchestration-go-${VERSION:1}.zip
 
-      - name: Build and push
-        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56
-        with:
-          context: .
-          build-args: TARGETVERSION=v${{ steps.meta.outputs.version }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Generate subject
+        id: hash
+        run: |
+          VERSION=${{ github.ref_name }}
+          echo "hashes=$(sha256sum edge-home-orchestration-go-${VERSION:1}.tar.gz edge-home-orchestration-go-${VERSION:1}.zip | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+  provenance:
+    needs: [generate_hashes, create-release]
+    name: Generate Provenance
+    permissions:
+      actions: read # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To add assets to a release.
+
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    with:
+      base64-subjects: "${{ needs.generate_hashes.outputs.hashes }}"
+      upload-assets: true # Optional: Upload to a new release
